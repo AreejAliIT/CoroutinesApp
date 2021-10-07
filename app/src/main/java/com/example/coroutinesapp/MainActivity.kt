@@ -7,8 +7,10 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -31,24 +33,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun  callAPI() {
+        withContext(Dispatchers.Main) {
+            val apiInterface = APIClient().getClient()?.create(APIInterface::class.java)
+            val call: Call<Advices?>? = apiInterface!!.getAdvises()
 
-        val apiInterface = APIClient().getClient()?.create(APIInterface::class.java)
-        val call: Call<Advices?>? = apiInterface!!.getAdvises()
+            call?.enqueue(object : Callback<Advices?> {
+                override fun onResponse(
+                    call: Call<Advices?>?, response: Response<Advices?>
+                ) {
+                    Log.d("TAG", response.code().toString() + "")
+                    val resource: Advices? = response.body()
+                    val datumAdvice = resource?.slip?.advice
+                    tvAdvice.text = "The advice : " + datumAdvice
+                }
 
-        call?.enqueue(object : Callback<Advices?> {
-            override fun onResponse(
-                call: Call<Advices?>?, response: Response<Advices?>
-            ) {
-                Log.d("TAG", response.code().toString() + "")
-                val resource: Advices? = response.body()
-                val datumAdvice = resource?.slip?.advice
-                tvAdvice.text = "The advice : " + datumAdvice
-            }
-
-            override fun onFailure(call: Call<Advices?>, t: Throwable?) {
-                call.cancel()
-            }
-        })
-
+                override fun onFailure(call: Call<Advices?>, t: Throwable?) {
+                    call.cancel()
+                }
+            })
+        }
     }
 }
